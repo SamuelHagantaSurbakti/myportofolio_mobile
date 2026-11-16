@@ -52,6 +52,32 @@ full restart: mengompilasi ulang seluruh aplikasi dari awal. State akan hilang.
 kita tidak cukup mengandalkan hot reload saja Ketika ada perubahan state awal atau menambahkan asset baru dan juga perubahan konfigurasi platform
 
 
+## AI Disclosure
+
+### Tools yang Digunakan
+- Claude AI model Sonnet 5.5
+
+### Bagian yang Dibantu 
+
+| Bagian | Bentuk bantuan |
+|---|---|
+| `main.dart` | Penjelasan struktur aplikasi (`MaterialApp`, `StatelessWidget`, alur `runApp`) |
+| `menu.dart` (`MyHomePage`) | Penjelasan susunan widget halaman utama |
+| `Soal Refleksi` | Penjelasan dan jawaban secara umum|
+
+
+### Strategi Prompting
+1. Saya mulai dengan menyatakan bahwa saya belum mengenal Flutter/Dart dan meminta penjelasan isi kode **dari dasar**.
+2. Saya menempelkan potongan kode per file lalu meminta penjelasan **baris demi baris / widget demi widget**.
+3. Saya menanyakan soal refleksi secara garis besar lalu menanyakan hal yang spesifik yang sekiranya perlu saya ketahui 
+
+
+### Keterbatasan AI yang Saya Temui
+- Penjelasan AI terkadang cenderung menganggap saya sudah paham dasar-dasar yang saya belum ketahui.
+
+### Log Percakapan
+[Link AI #1](https://claude.ai/share/2cbc306c-f5fb-4a42-a5c2-398d263172e4) --  https://claude.ai/share/2cbc306c-f5fb-4a42-a5c2-398d263172e4
+
 
 
 
