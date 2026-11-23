@@ -11,11 +11,16 @@ class ProjectFormPage extends StatefulWidget {
 class _ProjectFormPageState extends State<ProjectFormPage> {
   final _formKey = GlobalKey<FormState>();
 
-  String _projectName = "";
-  String _description = "";
-  String _category = "Web Development"; // default
-  String _technologies = "";
-  String _projectLink = "";
+  final _nameController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  final _technologiesController = TextEditingController();
+  final _linkController = TextEditingController();
+  final _startDateController = TextEditingController();
+  final _endDateController = TextEditingController();
+
+  String _category = 'Web Development';
+  DateTime? _startDate;
+  DateTime? _endDate;
 
   final List<String> _categories = [
     'Web Development',
@@ -26,89 +31,182 @@ class _ProjectFormPageState extends State<ProjectFormPage> {
   ];
 
   @override
+  void dispose() {
+    _nameController.dispose();
+    _descriptionController.dispose();
+    _technologiesController.dispose();
+    _linkController.dispose();
+    _startDateController.dispose();
+    _endDateController.dispose();
+    super.dispose();
+  }
+
+  String _formatDate(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  Future<void> _pickDate({required bool isStart}) async {
+    final initial = (isStart ? _startDate : _endDate) ?? DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      if (isStart) {
+        _startDate = picked;
+        _startDateController.text = _formatDate(picked);
+      } else {
+        _endDate = picked;
+        _endDateController.text = _formatDate(picked);
+      }
+    });
+  }
+
+  bool _isValidUrl(String value) {
+    final uri = Uri.tryParse(value);
+    return uri != null &&
+        (uri.scheme == 'http' || uri.scheme == 'https') &&
+        uri.host.isNotEmpty;
+  }
+
+  void _resetForm() {
+    _formKey.currentState!.reset();
+    _nameController.clear();
+    _descriptionController.clear();
+    _technologiesController.clear();
+    _linkController.clear();
+    _startDateController.clear();
+    _endDateController.clear();
+    setState(() {
+      _category = 'Web Development';
+      _startDate = null;
+      _endDate = null;
+    });
+  }
+
+  void _showSummary() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Proyek berhasil ditambahkan!'),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Nama Proyek: ${_nameController.text.trim()}'),
+                Text('Deskripsi: ${_descriptionController.text.trim()}'),
+                Text('Kategori: $_category'),
+                Text('Teknologi: ${_technologiesController.text.trim()}'),
+                Text('Tanggal Mulai: ${_startDateController.text}'),
+                Text(
+                  'Tanggal Selesai: '
+                  '${_endDateController.text.isEmpty ? "-" : _endDateController.text}',
+                ),
+                Text(
+                  'Tautan: '
+                  '${_linkController.text.trim().isEmpty ? "-" : _linkController.text.trim()}',
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () {
+                Navigator.pop(context);
+                _resetForm();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  InputDecoration _decoration(String label, {String? hint}) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hint ?? label,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(5.0)),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Center(child: Text('Add Project Form')),
-        backgroundColor: Colors.indigo,
-        foregroundColor: Colors.white,
+        title: const Text(
+          'Add Project',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       drawer: const LeftDrawer(),
       body: Form(
         key: _formKey,
         child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: const EdgeInsets.all(16.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // === Project Name ===
+              // === Nama Proyek ===
               Padding(
-                padding: const EdgeInsets.all(8.0),
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
                 child: TextFormField(
-                  decoration: InputDecoration(
-                    hintText: "Nama Proyek",
-                    labelText: "Nama Proyek",
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(5.0),
-                    ),
-                  ),
-                  onChanged: (String? value) {
-                    setState(() {
-                      _projectName = value!;
-                    });
-                  },
-                  validator: (String? value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return "Nama proyek tidak boleh kosong!";
+                  controller: _nameController,
+                  decoration: _decoration('Nama Proyek'),
+                  validator: (value) {
+                    final v = value?.trim() ?? '';
+                    if (v.isEmpty) {
+                      return 'Nama proyek tidak boleh kosong!';
+                    }
+                    if (v.length < 3) {
+                      return 'Nama proyek minimal 3 karakter!';
+                    }
+                    if (v.length > 100) {
+                      return 'Nama proyek maksimal 100 karakter!';
                     }
                     return null;
                   },
                 ),
               ),
 
-              // === Description ===
+              // === Deskripsi ===
               Padding(
-                padding: const EdgeInsets.all(8.0),
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
                 child: TextFormField(
+                  controller: _descriptionController,
                   maxLines: 5,
-                  decoration: InputDecoration(
-                    hintText: "Deskripsi Proyek",
-                    labelText: "Deskripsi Proyek",
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(5.0),
-                    ),
-                  ),
-                  onChanged: (String? value) {
-                    setState(() {
-                      _description = value!;
-                    });
-                  },
-                  validator: (String? value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return "Deskripsi proyek tidak boleh kosong!";
+                  decoration: _decoration('Deskripsi Proyek'),
+                  validator: (value) {
+                    final v = value?.trim() ?? '';
+                    if (v.isEmpty) {
+                      return 'Deskripsi proyek tidak boleh kosong!';
+                    }
+                    if (v.length < 10) {
+                      return 'Deskripsi minimal 10 karakter!';
+                    }
+                    if (v.length > 500) {
+                      return 'Deskripsi maksimal 500 karakter!';
                     }
                     return null;
                   },
                 ),
               ),
 
-              // === Category ===
+              // === Kategori ===
               Padding(
-                padding: const EdgeInsets.all(8.0),
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
                 child: DropdownButtonFormField<String>(
-                  decoration: InputDecoration(
-                    labelText: "Kategori Proyek",
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(5.0),
-                    ),
-                  ),
+                  decoration: _decoration('Kategori Proyek'),
                   initialValue: _category,
                   items: _categories
-                      .map(
-                        (category) => DropdownMenuItem(
-                          value: category,
-                          child: Text(category),
-                        ),
-                      )
+                      .map((c) => DropdownMenuItem(value: c, child: Text(c)))
                       .toList(),
                   onChanged: (String? newValue) {
                     setState(() {
@@ -118,90 +216,106 @@ class _ProjectFormPageState extends State<ProjectFormPage> {
                 ),
               ),
 
-              // === Technologies ===
+              // === Teknologi ===
               Padding(
-                padding: const EdgeInsets.all(8.0),
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
                 child: TextFormField(
-                  decoration: InputDecoration(
-                    hintText: "Contoh: Flutter, Django, Figma",
-                    labelText: "Teknologi yang Digunakan",
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(5.0),
-                    ),
+                  controller: _technologiesController,
+                  decoration: _decoration(
+                    'Teknologi yang Digunakan',
+                    hint: 'Contoh: Flutter, Django, Figma',
                   ),
-                  onChanged: (String? value) {
-                    setState(() {
-                      _technologies = value!;
-                    });
+                  validator: (value) {
+                    final v = value?.trim() ?? '';
+                    if (v.isEmpty) {
+                      return 'Teknologi tidak boleh kosong!';
+                    }
+                    if (v.length > 100) {
+                      return 'Teknologi maksimal 100 karakter!';
+                    }
+                    return null;
                   },
                 ),
               ),
 
-              // === Project Link ===
+              // === Tanggal Mulai ===
               Padding(
-                padding: const EdgeInsets.all(8.0),
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
                 child: TextFormField(
-                  decoration: InputDecoration(
-                    hintText: "URL Proyek (opsional)",
-                    labelText: "Tautan Proyek",
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(5.0),
-                    ),
+                  controller: _startDateController,
+                  readOnly: true,
+                  decoration: _decoration('Tanggal Mulai')
+                      .copyWith(suffixIcon: const Icon(Icons.calendar_today)),
+                  onTap: () => _pickDate(isStart: true),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Tanggal mulai harus dipilih!';
+                    }
+                    return null;
+                  },
+                ),
+              ),
+
+              // === Tanggal Selesai (opsional) ===
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: TextFormField(
+                  controller: _endDateController,
+                  readOnly: true,
+                  decoration: _decoration('Tanggal Selesai (opsional)')
+                      .copyWith(suffixIcon: const Icon(Icons.calendar_today)),
+                  onTap: () => _pickDate(isStart: false),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return null;
+                    if (_startDate != null &&
+                        _endDate != null &&
+                        _endDate!.isBefore(_startDate!)) {
+                      return 'Tanggal selesai tidak boleh sebelum tanggal mulai!';
+                    }
+                    return null;
+                  },
+                ),
+              ),
+
+              // === Tautan (opsional) ===
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: TextFormField(
+                  controller: _linkController,
+                  keyboardType: TextInputType.url,
+                  decoration: _decoration(
+                    'Tautan Proyek',
+                    hint: 'https://github.com/... (opsional)',
                   ),
-                  onChanged: (String? value) {
-                    setState(() {
-                      _projectLink = value!;
-                    });
+                  validator: (value) {
+                    final v = value?.trim() ?? '';
+                    if (v.isEmpty) {
+                      return null;
+                    }
+                    if (!_isValidUrl(v)) {
+                      return 'Format URL tidak valid (harus diawali http:// atau https://)!';
+                    }
+                    return null;
                   },
                 ),
               ),
 
               // === Tombol Simpan ===
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: ElevatedButton(
-                    style: ButtonStyle(
-                      backgroundColor: WidgetStateProperty.all(Colors.indigo),
-                    ),
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        showDialog(
-                          context: context,
-                          builder: (context) {
-                            return AlertDialog(
-                              title: const Text('Proyek berhasil ditambahkan!'),
-                              content: SingleChildScrollView(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Nama Proyek: $_projectName'),
-                                    Text('Deskripsi: $_description'),
-                                    Text('Kategori: $_category'),
-                                    Text('Teknologi: $_technologies'),
-                                    Text('Tautan: $_projectLink'),
-                                  ],
-                                ),
-                              ),
-                              actions: [
-                                TextButton(
-                                  child: const Text('OK'),
-                                  onPressed: () {
-                                    Navigator.pop(context);
-                                    _formKey.currentState!.reset();
-                                  },
-                                ),
-                              ],
-                            );
-                          },
-                        );
-                      }
-                    },
-                    child: const Text(
-                      "Save",
-                      style: TextStyle(color: Colors.white),
-                    ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  onPressed: () {
+                    if (_formKey.currentState!.validate()) {
+                      _showSummary();
+                    }
+                  },
+                  child: const Text(
+                    'Simpan',
+                    style: TextStyle(color: Colors.white),
                   ),
                 ),
               ),
